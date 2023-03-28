@@ -87,7 +87,9 @@
             });
 
             function generateUrl(fieldName, fieldValue) {
-                var queryParamsString = window.location.hash.substring(2); // TODO: Trim # and / up until the question mark instead.
+                var hash = window.location.hash;
+                var questionMarkIndex = hash.indexOf('?'); // TODO: Trim # and / up until the question mark instead.
+                var queryParamsString = hash.substr(questionMarkIndex);
                 const params = new Proxy(new URLSearchParams(queryParamsString), {
                     get: (searchParams, prop) => searchParams.get(prop),
                 });
