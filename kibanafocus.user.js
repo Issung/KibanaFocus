@@ -69,11 +69,11 @@
                     lastColumn.insertAdjacentHTML('beforeend', `
                         <div class="modification">
                             <a style="margin-left: 20px;" href="${url}">🔍 Focus on traceidentifier</a>
-                            <a style="margin-left: 20px;" href="http://github.com/Issung">
-                                <img class="issung" src="https://i.imgur.com/Zfb2K30.png" style=""/>
+                            <a style="margin-left: 20px;" href="https://github.com/Issung/KibanaFocus">
+                                <img class="issung" src="https://i.imgur.com/Zfb2K30.png"/>
                             </a>
                             <span class="tooltip">
-                                <a href="http://github.com/Issung">Kibana focus plugin by JoelG</a>
+                                <a href="https://github.com/Issung/KibanaFocus">Kibana focus plugin by JoelG</a>
                             </span>
                         </div>
                         `);
