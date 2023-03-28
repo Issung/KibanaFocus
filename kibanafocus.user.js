@@ -7,6 +7,7 @@
 // @match        https://search-ekelasticsearchdomain-5jvrnkc5zt3m5nevaxazbnnmp4.eu-central-1.es.amazonaws.com/_plugin/kibana/app/*
 // @icon         https://images.contentstack.io/v3/assets/bltefdd0b53724fa2ce/blt601c406b0b5af740/620577381692951393fdf8d6/elastic-logo-cluster.svg
 // @grant        none
+// @require      https://cdn.jsdelivr.net/npm/rison@0.1.1/js/rison.js
 // ==/UserScript==
 
 (function() {
@@ -47,14 +48,15 @@
     `);
 
     document.addEventListener("click", function(e) {
-        console.log(`click event on ${e.target} {}`);
+        console.log(`click event on ${e.target} ${e.target.outerHTML}`);
 
         var isExpandButton = e.target.attributes?.['aria-label']?.value == 'Toggle row details' ?? false;
         var isRightArrowSvg = e.target.querySelector('path')?.attributes?.d?.value.startsWith('M5.157') ?? false;
         var isRightArrowSvgPath = e.target.attributes?.d?.value.startsWith('M5.157') ?? false;
         var isDownArrowSvg = e.target.querySelector('path')?.attributes?.d?.value.startsWith('M13.069') ?? false;
         var isEmptySpace = e.target.attributes?.['data-test-subj']?.value == 'docTableExpandToggleColumn' ?? false;
-        var shouldExpand = isExpandButton || isRightArrowSvg || isRightArrowSvgPath || isDownArrowSvg || isEmptySpace;
+        var isArrowIcon = e.target.tagName.toLowerCase() == 'icon' && (e.target.attributes.type?.value?.startsWith(`'arrow`) ?? false);
+        var shouldExpand = isExpandButton || isRightArrowSvg || isRightArrowSvgPath || isDownArrowSvg || isEmptySpace || isArrowIcon;
 
         if (shouldExpand) {
             console.log("something expanded or collapsed");
@@ -85,77 +87,42 @@
             });
 
             function generateUrl(fieldName, fieldValue) {
-                const timeRegex = /(?<=,time:\()[^)]*(?=\))/g; // Get 'time' field from  url.
-                const columnsRegex = /(?<=\(columns:!\()[^)]*(?=\))/g; // Get 'columns' field from url.
-                const indexRegex = /(?<=index:')[0-9a-f-]*(?=',)/g; // Get 'index' field from url.
-                var location = window.location.href;
-                var timeMatch = timeRegex.exec(location);
-                var time = timeMatch[0];
-                var columnsMatch = columnsRegex.exec(location);
-                var columns = columnsMatch[0];
-                var indexMatch = indexRegex.exec(location);
-                var index = indexMatch[0];
+                var queryParamsString = window.location.hash.substring(2); // TODO: Trim # and / up until the question mark instead.
+                const params = new Proxy(new URLSearchParams(queryParamsString), {
+                    get: (searchParams, prop) => searchParams.get(prop),
+                });
 
-                // Generate Kibana url in the most scuffed way possible.
-                var url = `https://${window.location.host}/_plugin/kibana/app/discover#/
-                    ?_g=
-                    (
-                        filters:!(),
-                        refreshInterval:
-                        (
-                            pause:!t,
-                            value:0
-                        ),
-                        time:
-                        (
-                            ${time}
-                        )
-                    )
-                    &_a=
-                    (
-                        columns:!
-                        (
-                            ${columns}
-                        ),
-                        filters:!
-                        (
-                            (
-                                '$state':
-                                (
-                                    store:appState
-                                ),
-                                meta:
-                                (
-                                    alias:!n,
-                                    disabled:!f,
-                                    index:'${index}',
-                                    key:${fieldName},
-                                    negate:!f,
-                                    params:
-                                    (
-                                        query:'${fieldValue}'
-                                    ),
-                                    type:phrase
-                                ),
-                                query:
-                                (
-                                    match_phrase:
-                                    (
-                                        ${fieldName}:'${fieldValue}'
-                                    )
-                                )
-                            )
-                        ),
-                        index:'${index}',
-                        interval:auto,
-                        query:
-                        (
-                            language:lucene,
-                            query:''
-                        ),
-                        sort:!()
-                    )`
-                .replaceAll(/\s/g,''); // Remove all whitespace, its easy to read in the code but busted in browser.
+                var g = rison.decode(params._g);
+                var a = rison.decode(params._a);
+
+                a.filters = [
+                    {
+                        $state: {
+                            store: 'appState'
+                        },
+                        meta: {
+                            alias: null,
+                            disabled: false,
+                            index: a.index,
+                            key: fieldName,
+                            negate: false,
+                            params: {
+                                query: fieldValue
+                            },
+                            type: 'phrase',
+                        },
+                        query: {
+                            match_phrase: {
+                                [fieldName]: fieldValue // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Object_initializer#computed_property_names
+                            },
+                        },
+                    },
+                ];
+
+                var gEncoded = rison.encode(g);
+                var aEncoded = rison.encode(a);
+
+                var url = `https://${window.location.host}/_plugin/kibana/app/discover#/?_g=${gEncoded}&_a=${aEncoded}`;
 
                 return url;
             }
