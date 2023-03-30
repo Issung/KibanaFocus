@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Kibana TraceId Focus
-// @version      0.2
+// @version      0.2.1
 // @description  Add a "focus" link to traceidentifiers that wipes all filters except for timeframe and adds a filter for the traceidentifier.
 // @author       JoelG AKA Issung
 // @match        https://search-elkelasticsearchdomain-bqedehxv6l7akoeyshisnm72g4.us-west-2.es.amazonaws.com/_plugin/kibana/app/*
@@ -14,35 +14,8 @@
 (function() {
     'use strict';
     const FAVCOLS_KEY = 'KIBANAFOCUS_FAVCOLS';
-    let motds = [
-        'good luck!',
-        'you\'re welcome!',
-        'hello world!',
-        'abandon hope all ye who enter here...',
-        'remember to thank Joel!',
-        'boy I\'m useful!',
-        `the time is ${new Date().toLocaleTimeString()}.`,
-        `the date is ${new Date().toDateString()}.`,
-        'have a great day!',
-        'bababooey!',
-        'nevermind...',
-        'I hope these messages brighten your day!',
-        'I got one job and i\'m good at it!',
-        'let\'s dance!',
-        'beers after this?',
-        'the log has to be in here somewhere..',
-        'stop reading these messages!',
-        'close that Twitter tab! I see it!',
-        'that\'s all.',
-        'stay safe!',
-        'wanna hear a joke?',
-        'sue me!',
-        'I\'m running out of messages.',
-        'happy birthday!',
-        'remember to drink some water.',
-    ];
 
-    console.log('%c KibanaFocus userscript running! Written by JoelG/Issung', 'font-size: 36px; font-weight: bold');
+    console.log('%c KibanaFocus userscript running! Written by JoelG/Issung', 'font-size: 30px; font-weight: bold');
 
     function getUrlParts() {
         var hash = window.location.hash;
@@ -72,7 +45,7 @@
     // Set custom columns if none set.
     async function restoreFavouriteColumns() {
         let [g, a] = getUrlParts();
-        let defaults = `'@service',level,message`;
+        let defaults = `@service,level,message`;
         var favColumns = (await GM.getValue(FAVCOLS_KEY, defaults)).split(',');
         console.log(`${FAVCOLS_KEY} loaded ${favColumns} (defaults are ${defaults})`);
         a.columns = favColumns;
@@ -284,4 +257,32 @@
             }
         }
     });
+
+    let motds = [
+        'good luck!',
+        'you\'re welcome!',
+        'hello world!',
+        'abandon hope all ye who enter here...',
+        'remember to thank Joel!',
+        'boy I\'m useful!',
+        `the time is ${new Date().toLocaleTimeString()}.`,
+        `the date is ${new Date().toDateString()}.`,
+        'have a great day!',
+        'bababooey!',
+        'nevermind...',
+        'I hope these messages brighten your day!',
+        'I got one job and I\'m good at it!',
+        'let\'s dance!',
+        'beers after this?',
+        'the log has to be in here somewhere..',
+        'stop reading these messages!',
+        'close that Twitter tab! I see it!',
+        'that\'s all.',
+        'stay safe!',
+        'wanna hear a joke?',
+        'sue me!',
+        'I\'m running out of messages.',
+        'happy birthday!',
+        'remember to drink some water.',
+    ];
 })();
