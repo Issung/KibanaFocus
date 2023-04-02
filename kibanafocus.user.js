@@ -1,13 +1,13 @@
 // ==UserScript==
-// @name         Kibana TraceId Focus
-// @version      0.2.1
-// @description  Add a "focus" link to traceidentifiers that wipes all filters except for timeframe and adds a filter for the traceidentifier.
+// @name         Kibana Focus
+// @version      0.2.2
+// @description  Extend Kibana UI to make it easier to navigate and use.
 // @author       JoelG AKA Issung
 // @match        https://search-elkelasticsearchdomain-bqedehxv6l7akoeyshisnm72g4.us-west-2.es.amazonaws.com/_plugin/kibana/app/*
 // @match        https://search-ekelasticsearchdomain-5jvrnkc5zt3m5nevaxazbnnmp4.eu-central-1.es.amazonaws.com/_plugin/kibana/app/*
 // @icon         https://images.contentstack.io/v3/assets/bltefdd0b53724fa2ce/blt601c406b0b5af740/620577381692951393fdf8d6/elastic-logo-cluster.svg
-// @grant        GM_setValue
-// @grant        GM_getValue
+// @grant        GM.setValue
+// @grant        GM.getValue
 // @require      https://cdn.jsdelivr.net/npm/rison@0.1.1/js/rison.js
 // ==/UserScript==
 
