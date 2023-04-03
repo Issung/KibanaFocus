@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Kibana Focus
-// @version      0.3.2
+// @version      0.3.3
 // @description  Extend Kibana UI to make it easier to navigate and use.
 // @author       JoelG AKA Issung
 // @match        https://search-elkelasticsearchdomain-bqedehxv6l7akoeyshisnm72g4.us-west-2.es.amazonaws.com/_plugin/kibana/app/*
@@ -191,8 +191,20 @@
         var checked = document.querySelector('input#color-rows')?.checked ?? false;
         var warnColor = checked ? '#ffffe0' : null;
         var errorColor = checked ? '#ffd4d4' : null;
-        allTableCells.filter(e => e.innerHTML.toLowerCase() == 'warn').map(e => e.parentElement.parentElement.parentElement).forEach(e => { if (e.tagName == 'TR') { e.style.backgroundColor = warnColor; }});
-        allTableCells.filter(e => e.innerHTML.toLowerCase() == 'error' || e.innerHTML.toLowerCase() == 'fatal').map(e => e.parentElement.parentElement.parentElement).forEach(e => { if (e.tagName == 'TR') { e.style.backgroundColor = errorColor; }});
+        allTableCells.forEach(e => {
+            var value = e.innerHTML.replaceAll(/<\/?mark>/g, '').toLowerCase();
+            var color;
+            if (value == 'warn') {
+                color = warnColor;
+            }
+            else if (value == 'error' || value == 'fatal') {
+                color = errorColor;
+            }
+            var row = e.parentElement.parentElement.parentElement;
+            if (row.tagName == 'TR') {
+                row.style.backgroundColor = color;
+            }
+        });
         setTimeout(colorRows, 100);
     }
 
