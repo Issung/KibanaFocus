@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Kibana Focus
-// @version      0.2.3
+// @version      0.3
 // @description  Extend Kibana UI to make it easier to navigate and use.
 // @author       JoelG AKA Issung
 // @match        https://search-elkelasticsearchdomain-bqedehxv6l7akoeyshisnm72g4.us-west-2.es.amazonaws.com/_plugin/kibana/app/*
@@ -14,6 +14,7 @@
 (function() {
     'use strict';
     const FAVCOLS_KEY = 'KIBANAFOCUS_FAVCOLS';
+    const COLORROWS_KEY = 'KIBANAFOCUS_COLORROWS';
 
     console.log('%c KibanaFocus userscript running! Written by JoelG/Issung', 'font-size: 30px; font-weight: bold');
 
@@ -105,6 +106,31 @@
         }
     }
 
+    async function addColorCheckbox() {
+        // First check if already added
+        if (document.querySelector('label[for="color-rows"]')) {
+            return;
+        }
+
+        var topNavItemsDiv = document.querySelector('nav.euiHeaderLinks.kbnTopNavMenu div.euiHeaderLinks__list');
+        if (!topNavItemsDiv) {
+            setTimeout(addColorCheckbox, 100);
+        }
+        else {
+            topNavItemsDiv.insertAdjacentHTML('afterbegin', `
+                <label for="color-rows">Color rows based on log level</label>
+                <input type="checkbox" id="color-rows"/>
+            `);
+            var colorRows = await GM.getValue(COLORROWS_KEY, 'true');
+            console.log(`${COLORROWS_KEY} loaded ${colorRows} (default is true)`);
+            document.querySelector('input#color-rows').checked = colorRows;
+            document.querySelector('input#color-rows').addEventListener('change', async e => {
+                await GM.setValue(COLORROWS_KEY, e.target.checked);
+                console.log(`${COLORROWS_KEY} set to ${e.target.checked}`);
+            });
+        }
+    }
+
     // Custom styling
     document.querySelector('head').insertAdjacentHTML('beforeend', `
         <style>
@@ -153,6 +179,18 @@
         </style>
     `);
 
+    function colorRows() {
+        var allTableCells = Array.from(document.querySelectorAll('div.truncate-by-height span[ng-non-bindable]'));
+        var checked = document.querySelector('input#color-rows')?.checked ?? false;
+        var warnColor = checked ? '#ffffe0' : null;
+        var errorColor = checked ? '#ffd4d4' : null;
+        allTableCells.filter(e => e.innerHTML.toLowerCase() == 'warn').map(e => e.parentElement.parentElement.parentElement).forEach(e => { e.style.backgroundColor = warnColor; });
+        allTableCells.filter(e => e.innerHTML.toLowerCase() == 'error' || e.innerHTML.toLowerCase() == 'fatal').map(e => e.parentElement.parentElement.parentElement).forEach(e => { e.style.backgroundColor = errorColor; });
+        setTimeout(colorRows, 10);
+    }
+
+    addColorCheckbox();
+    colorRows();
     addColumnButtons();
 
     // On page load, if no columns are set then set them now.
@@ -206,7 +244,7 @@
         rows.forEach(row => {
             if (row.attributes.modified?.value != 'true') {
                 var lastColumn = row.querySelector('td:last-child');
-                var value = lastColumn.children[0].innerHTML.replaceAll(/<\/?mark>/g, ''); // 
+                var value = lastColumn.children[0].innerHTML.replaceAll(/<\/?mark>/g, '');
                 value = valueModifier ? valueModifier(value) : value;
                 var url = generateUrl(fieldName, value);
 
