@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Kibana Focus
-// @version      0.3
+// @version      0.3.1
 // @description  Extend Kibana UI to make it easier to navigate and use.
 // @author       JoelG AKA Issung
 // @match        https://search-elkelasticsearchdomain-bqedehxv6l7akoeyshisnm72g4.us-west-2.es.amazonaws.com/_plugin/kibana/app/*
@@ -15,6 +15,17 @@
     'use strict';
     const FAVCOLS_KEY = 'KIBANAFOCUS_FAVCOLS';
     const COLORROWS_KEY = 'KIBANAFOCUS_COLORROWS';
+
+    async function getSetting(key, fallback) {
+        var result = (await GM.getValue(key, fallback));
+        console.log(`${key} setting loaded ${result} (default fallback is ${fallback}).`);
+        return result;
+    }
+
+    async function setSetting(key, value) {
+        await GM.setValue(key, value);
+        console.log(`${key} setting set to ${value}.`);
+    }
 
     console.log('%c KibanaFocus userscript running! Written by JoelG/Issung', 'font-size: 30px; font-weight: bold');
 
@@ -36,11 +47,10 @@
         return [g, a];
     }
 
-    function saveFavouriteColumns() {
+    async function saveFavouriteColumns() {
         let [g, a] = getUrlParts();
         var columnsJoined = a.columns.join(',');
-        GM.setValue(FAVCOLS_KEY, columnsJoined);
-        console.log(`${FAVCOLS_KEY} set to ${columnsJoined}`);
+        await setSetting(FAVCOLS_KEY, columnsJoined);
         var columnsMessageElement = document.querySelector('#favourite-columns-message');
         if (columnsMessageElement != null) {
             columnsMessageElement.innerHTML = `Favourites saved as [${columnsJoined}]`;
@@ -51,8 +61,7 @@
     async function restoreFavouriteColumns() {
         let [g, a] = getUrlParts();
         let defaults = `@service,level,message`;
-        var favColumns = (await GM.getValue(FAVCOLS_KEY, defaults)).split(',');
-        console.log(`${FAVCOLS_KEY} loaded ${favColumns} (defaults are ${defaults})`);
+        var favColumns = (await getSetting(FAVCOLS_KEY, defaults)).split(',');
         a.columns = favColumns;
         var gEncoded = rison.encode(g);
         var aEncoded = rison.encode(a);
@@ -94,12 +103,12 @@
             `);
             // We can't put onclick events on the buttons because of CSP, so this is the solution..
             document.querySelectorAll('div#favourite-columns button').forEach(btn => {
-                btn.addEventListener('click', event => {
+                btn.addEventListener('click', async event => {
                     if (event.target.attributes.action.value == 'save') {
-                        saveFavouriteColumns();
+                        await saveFavouriteColumns();
                     }
                     else if (event.target.attributes.action.value == 'restore') {
-                        restoreFavouriteColumns();
+                        await restoreFavouriteColumns();
                     }
                 });
             });
@@ -121,12 +130,10 @@
                 <label for="color-rows">Color rows based on log level</label>
                 <input type="checkbox" id="color-rows"/>
             `);
-            var colorRows = await GM.getValue(COLORROWS_KEY, 'true');
-            console.log(`${COLORROWS_KEY} loaded ${colorRows} (default is true)`);
+            var colorRows = await getSetting(COLORROWS_KEY, 'true');
             document.querySelector('input#color-rows').checked = colorRows;
             document.querySelector('input#color-rows').addEventListener('change', async e => {
-                await GM.setValue(COLORROWS_KEY, e.target.checked);
-                console.log(`${COLORROWS_KEY} set to ${e.target.checked}`);
+                await setSetting(COLORROWS_KEY, e.target.checked);
             });
         }
     }
@@ -184,13 +191,13 @@
         var checked = document.querySelector('input#color-rows')?.checked ?? false;
         var warnColor = checked ? '#ffffe0' : null;
         var errorColor = checked ? '#ffd4d4' : null;
-        allTableCells.filter(e => e.innerHTML.toLowerCase() == 'warn').map(e => e.parentElement.parentElement.parentElement).forEach(e => { e.style.backgroundColor = warnColor; });
-        allTableCells.filter(e => e.innerHTML.toLowerCase() == 'error' || e.innerHTML.toLowerCase() == 'fatal').map(e => e.parentElement.parentElement.parentElement).forEach(e => { e.style.backgroundColor = errorColor; });
+        allTableCells.filter(e => e.innerHTML.toLowerCase() == 'warn').map(e => e.parentElement.parentElement.parentElement).forEach(e => { if (e.tagName == 'TR') { e.style.backgroundColor = warnColor; }});
+        allTableCells.filter(e => e.innerHTML.toLowerCase() == 'error' || e.innerHTML.toLowerCase() == 'fatal').map(e => e.parentElement.parentElement.parentElement).forEach(e => { if (e.tagName == 'TR') { e.style.backgroundColor = errorColor; }});
         setTimeout(colorRows, 10);
     }
 
-    addColorCheckbox();
     colorRows();
+    addColorCheckbox();
     addColumnButtons();
 
     // On page load, if no columns are set then set them now.
@@ -206,6 +213,7 @@
         // Did we navigate from elsewhere to the discover page?
         if (event.oldURL.endsWith('#/') && event.newURL.indexOf('#/?_g=(') != -1) {
             console.log(`Doing some setup again because hashchanged to what we think is the discover page. oldURL: ${event.oldURL}, newURL: ${event.newURL}`);
+            addColorCheckbox();
             addColumnButtons();
             if (event.newURL.indexOf('columns:!(_source)') != -1) {
                 restoreFavouriteColumns();
