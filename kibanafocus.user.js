@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Kibana Focus
-// @version      0.2.2
+// @version      0.2.3
 // @description  Extend Kibana UI to make it easier to navigate and use.
 // @author       JoelG AKA Issung
 // @match        https://search-elkelasticsearchdomain-bqedehxv6l7akoeyshisnm72g4.us-west-2.es.amazonaws.com/_plugin/kibana/app/*
@@ -17,6 +17,10 @@
 
     console.log('%c KibanaFocus userscript running! Written by JoelG/Issung', 'font-size: 30px; font-weight: bold');
 
+    /**
+     * Get both parts of the Kibana discovery page URL.
+     * @returns {tuple} Decoded rison G and A.
+     */
     function getUrlParts() {
         var hash = window.location.hash;
         var questionMarkIndex = hash.indexOf('?'); // TODO: Trim # and / up until the question mark instead.
@@ -149,14 +153,6 @@
         </style>
     `);
 
-    // Setup column favourites
-    /*document.querySelector('section.dscTimechart').after(`
-        <div class="modification" id="favourite-columns">
-            <button>Save favourite columns</button>
-            <button>Restore favourite columns</button>
-        </div>
-    `);*/
-
     addColumnButtons();
 
     // On page load, if no columns are set then set them now.
@@ -193,70 +189,82 @@
 
         if (shouldExpand) {
             console.log("something expanded or collapsed");
-            var traceidRows = document.querySelectorAll('tr[data-test-subj="tableDocViewRow-traceidentifier"]');
 
-            traceidRows.forEach(function (row) {
-                if (row.attributes.modified?.value != 'true') {
-                    var lastColumn = row.querySelector('td:last-child');
-                    var traceidentifier = lastColumn.children[0].innerHTML.replaceAll(/<\/?mark>/g, '').split('-')[1]; // Remove <mark>'s which are the yellow-highlighted matches.
-                    var url = generateUrl('traceidentifier', traceidentifier);
-
-                    lastColumn.insertAdjacentHTML('beforeend', `
-                        <div class="modification">
-                            <a style="margin-left: 20px;" href="${url}">🔍 Focus on traceidentifier</a>
-                            <a style="margin-left: 20px;" href="https://github.com/Issung/KibanaFocus">
-                                <img style="top: 4px;" class="issung" src="https://i.imgur.com/Zfb2K30.png"/>
-                            </a>
-                            <span class="tooltip">
-                                <a href="https://github.com/Issung/KibanaFocus">Kibana focus plugin by JoelG</a>
-                            </span>
-                        </div>
-                        `);
-
-                    // Mark this row as modified so it doesn't get done again for this row.
-                    // Possible annoyance for users here as the columns get modified and such after we generate the link...
-                    row.setAttribute('modified', true);
-                }
-            });
-
-            function generateUrl(fieldName, fieldValue) {
-                let [g, a] = getUrlParts();
-
-                a.filters = [
-                    {
-                        $state: {
-                            store: 'appState'
-                        },
-                        meta: {
-                            alias: null,
-                            disabled: false,
-                            index: a.index,
-                            key: fieldName,
-                            negate: false,
-                            params: {
-                                query: fieldValue
-                            },
-                            type: 'phrase',
-                        },
-                        query: {
-                            match_phrase: {
-                                [fieldName]: fieldValue // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Object_initializer#computed_property_names
-                            },
-                        },
-                    },
-                ];
-
-                a.query.query = ""; // Retain preferred query type (lucene or kql), but remove the searchboxtext
-
-                var gEncoded = rison.encode(g);
-                var aEncoded = rison.encode(a);
-
-                var url = `https://${window.location.host}/_plugin/kibana/app/discover#/?_g=${gEncoded}&_a=${aEncoded}`;
-
-                return url;
-            }
+            addFocusLinks('traceidentifier', v => v.split('-')[1]); // Split traceidentifier value and use 2nd part (distributed across systems).
+            addFocusLinks('hangfire_job_id');
         }
     });
+
+    /**
+     *  Add "focus" links to fields in expanded log entries.
+     *  @param {string} fieldName - Name of the field, used to find the row, used in the link text.
+     *  @param {function} valueModifier - Optional, function that takes the value and returns the value modified (e.g. trim the traceidentifier).
+     */
+    function addFocusLinks(fieldName, valueModifier) {
+        var rows = document.querySelectorAll(`tr[data-test-subj="tableDocViewRow-${fieldName}"]`);
+
+        rows.forEach(row => {
+            if (row.attributes.modified?.value != 'true') {
+                var lastColumn = row.querySelector('td:last-child');
+                var value = lastColumn.children[0].innerHTML.replaceAll(/<\/?mark>/g, ''); // 
+                value = valueModifier ? valueModifier(value) : value;
+                var url = generateUrl(fieldName, value);
+
+                lastColumn.insertAdjacentHTML('beforeend', `
+                    <div class="modification">
+                        <a style="margin-left: 20px;" href="${url}">🔍 Focus on ${fieldName}</a>
+                        <a style="margin-left: 20px;" href="https://github.com/Issung/KibanaFocus">
+                            <img style="top: 4px;" class="issung" src="https://i.imgur.com/Zfb2K30.png"/>
+                        </a>
+                        <span class="tooltip">
+                            <a href="https://github.com/Issung/KibanaFocus">Kibana focus plugin by JoelG</a>
+                        </span>
+                    </div>
+                `);
+
+                // Mark this row as modified so it doesn't get done again for this row.
+                // Possible annoyance for users here as the columns get modified and such after we generate the link...
+                row.setAttribute('modified', true);
+            }
+        });
+    }
+
+    function generateUrl(fieldName, fieldValue) {
+        let [g, a] = getUrlParts();
+
+        a.filters = [
+            {
+                $state: {
+                    store: 'appState'
+                },
+                meta: {
+                    alias: null,
+                    disabled: false,
+                    index: a.index,
+                    key: fieldName,
+                    negate: false,
+                    params: {
+                        query: fieldValue
+                    },
+                    type: 'phrase',
+                },
+                query: {
+                    match_phrase: {
+                        [fieldName]: fieldValue // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Object_initializer#computed_property_names
+                    },
+                },
+            },
+        ];
+
+        a.query.query = ""; // Retain preferred query type (lucene or kql), but remove the searchboxtext
+
+        var gEncoded = rison.encode(g);
+        var aEncoded = rison.encode(a);
+
+        var url = `https://${window.location.host}/_plugin/kibana/app/discover#/?_g=${gEncoded}&_a=${aEncoded}`;
+
+        return url;
+    }
 
     let motds = [
         'good luck!',
