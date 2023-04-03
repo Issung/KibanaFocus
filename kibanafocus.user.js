@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Kibana Focus
-// @version      0.3.1
+// @version      0.3.2
 // @description  Extend Kibana UI to make it easier to navigate and use.
 // @author       JoelG AKA Issung
 // @match        https://search-elkelasticsearchdomain-bqedehxv6l7akoeyshisnm72g4.us-west-2.es.amazonaws.com/_plugin/kibana/app/*
@@ -90,8 +90,8 @@
             var motd = motds[Math.floor(Math.random()*motds.length)];
             timeChartElement.insertAdjacentHTML('afterend', `
                 <div class="modification" id="favourite-columns">
-                    <button action="save" alt="Set your favourite columns to the current setup">Save favourite columns</button>
-                    <button action="restore" alt="Load your favourite columns and use them in the UI">Restore favourite columns</button>
+                    <button action="save" title="Set your favourite columns to the current setup">Save favourite columns</button>
+                    <button action="restore" title="Load your favourite columns and use them in the UI">Restore favourite columns</button>
                     <p id="favourite-columns-message">Columns automatically restored to [${a.columns}], ${motd}</p>
                     <a style="float: right;" href="https://github.com/Issung/KibanaFocus">
                         <img class="issung" src="https://i.imgur.com/Zfb2K30.png"/>
@@ -127,7 +127,7 @@
         }
         else {
             topNavItemsDiv.insertAdjacentHTML('afterbegin', `
-                <label for="color-rows">Color rows based on log level</label>
+                <label for="color-rows" title="Color log rows based on the log level. Log level must be set as a column.">Color rows based on log level</label>
                 <input type="checkbox" id="color-rows"/>
             `);
             var colorRows = await getSetting(COLORROWS_KEY, 'true');
@@ -193,7 +193,7 @@
         var errorColor = checked ? '#ffd4d4' : null;
         allTableCells.filter(e => e.innerHTML.toLowerCase() == 'warn').map(e => e.parentElement.parentElement.parentElement).forEach(e => { if (e.tagName == 'TR') { e.style.backgroundColor = warnColor; }});
         allTableCells.filter(e => e.innerHTML.toLowerCase() == 'error' || e.innerHTML.toLowerCase() == 'fatal').map(e => e.parentElement.parentElement.parentElement).forEach(e => { if (e.tagName == 'TR') { e.style.backgroundColor = errorColor; }});
-        setTimeout(colorRows, 10);
+        setTimeout(colorRows, 100);
     }
 
     colorRows();
@@ -338,5 +338,8 @@
         'I\'m running out of messages.',
         'happy birthday!',
         'remember to drink some water.',
+        '1 more week until retirement...',
+        'it\'s all in the reflexes.',
+        'it\'s just a flesh wound!',
     ];
 })();
