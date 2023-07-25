@@ -15,6 +15,13 @@
     'use strict';
     const FAVCOLS_KEY = 'KIBANAFOCUS_FAVCOLS';
     const COLORROWS_KEY = 'KIBANAFOCUS_COLORROWS';
+    
+    // Different hosts and indexes for both regions, to generate links for the other region.
+    // Index is present in the urls, must be replaced as well as host.
+    const US_HOST = 'search-elkelasticsearchdomain-bqedehxv6l7akoeyshisnm72g4.us-west-2.es.amazonaws.com';
+    const US_INDEX = '34edc860-de2b-11ea-9bd1-c725881bcc6f';
+    const EU_HOST = 'search-ekelasticsearchdomain-5jvrnkc5zt3m5nevaxazbnnmp4.eu-central-1.es.amazonaws.com';
+    const EU_INDEX = '4a12dc60-de1d-11eb-807c-cd5fa1939567';
 
     async function getSetting(key, fallback) {
         var result = (await GM.getValue(key, fallback));
@@ -129,12 +136,18 @@
             topNavItemsDiv.insertAdjacentHTML('afterbegin', `
                 <label for="color-rows" title="Color log rows based on the log level. Log level must be set as a column.">Color rows based on log level</label>
                 <input type="checkbox" id="color-rows"/>
+                <p style="margin-top: 2px; margin-left: 10px;">|</p>
             `);
             var colorRows = await getSetting(COLORROWS_KEY, 'true');
             document.querySelector('input#color-rows').checked = colorRows;
             document.querySelector('input#color-rows').addEventListener('change', async e => {
                 await setSetting(COLORROWS_KEY, e.target.checked);
             });
+
+            var otherRegion = window.location.host == US_HOST ? "EU" : "US";
+            topNavItemsDiv.insertAdjacentHTML('afterbegin', `
+                <a id="region-switch" title="Switch over to the ${otherRegion} Kibana instance bringing current filters with you" style="margin-right:20px" href="${generateOtherRegionUrl(window.location.toString())}">Switch to ${otherRegion}</a>
+            `);
         }
     }
 
@@ -183,6 +196,9 @@
             .modification span.tooltip a {
                 color: white;
             }
+            .euiHeaderLinks a:hover {
+                text-decoration: underline;
+            }
         </style>
     `);
 
@@ -208,6 +224,15 @@
         setTimeout(colorRows, 100);
     }
 
+    function generateOtherRegionUrl(url) {
+        let currentHost = url.indexOf(US_HOST) != -1 ? US_HOST : EU_HOST;
+        let currentIndex = url.indexOf(US_HOST) != -1 ? US_INDEX : EU_INDEX;
+        let otherHost = url.indexOf(US_HOST) != -1 ? EU_HOST : US_HOST;
+        let otherIndex = url.indexOf(US_HOST) != -1 ? EU_INDEX : US_INDEX;
+        let otherRegionUrl = url.replace(currentHost, otherHost).replaceAll(currentIndex, otherIndex);
+        return otherRegionUrl;
+    }
+
     colorRows();
     addColorCheckbox();
     addColumnButtons();
@@ -230,6 +255,11 @@
             if (event.newURL.indexOf('columns:!(_source)') != -1) {
                 restoreFavouriteColumns();
             }
+        }
+        let switchButton = document.querySelector('a#region-switch');
+        if (switchButton) {
+            let otherRegionUrl = generateOtherRegionUrl(event.newURL);
+            switchButton.setAttribute('href', otherRegionUrl);
         }
     });
 
@@ -342,7 +372,7 @@
         'beers after this?',
         'the log has to be in here somewhere..',
         'stop reading these messages!',
-        'close that Twitter tab! I see it!',
+        'close that Twitter/X tab! I see it!',
         'that\'s all.',
         'stay safe!',
         'wanna hear a joke?',
