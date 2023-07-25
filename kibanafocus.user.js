@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Kibana Focus
-// @version      0.3.3
+// @version      0.4
 // @description  Extend Kibana UI to make it easier to navigate and use.
 // @author       JoelG AKA Issung
 // @match        https://search-elkelasticsearchdomain-bqedehxv6l7akoeyshisnm72g4.us-west-2.es.amazonaws.com/_plugin/kibana/app/*
